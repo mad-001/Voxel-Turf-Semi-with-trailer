@@ -159,10 +159,33 @@ function define_semi_truck (EntityTypes)
 	ET.chaseCameraEnd   = turf.btVector3(0, 5.0, -15);
 
 	ET.hasCustomPushRenderInstance = true;  -- we draw the wheels + the trailer ourselves
+	ET.hasCustomPhysicsPrestep     = true;  -- feed trigger throttle into the engine's own drive input
 	EntityTypes:pushEntityType(ET);
 	SEMI_CAB_ENTITY_ID = ET:getId();
 
 	ENTITY_TYPES[SEMI_CAB_ENTITY_ID] = {};
+
+	-- Trigger drive -- NOTHING remapped. The right trigger is already bound to aim
+	-- and the left trigger's pull already registers as fire, so we read those
+	-- existing signals off the driver and write the engine's OWN throttle input,
+	-- walkFB: right trigger -> forward, left trigger -> brake/reverse, neither ->
+	-- coast. The native vehicle physics then drives with this cab's own
+	-- VehicleParameters -- nothing is reimplemented. walkFB is overwritten every
+	-- frame, so the stick no longer drives the cab forward (it still STEERS via
+	-- walkLR, which we never touch). Runs server-side before the physics step.
+	-- If forward/reverse come out swapped on your pad, swap the two reads below.
+	ENTITY_TYPES[SEMI_CAB_ENTITY_ID].physicsPrestep = function (E, currentFrame)
+		local P = E:wrangleDriver();
+		if (P == nil) then return false; end
+		local NH = turf.NetworkHandler;
+		local rt = bit32.band(P:getRightClickMode(), bit32.bor(NH.RIGHT_MB_DOWN_FLAG, NH.RIGHT_MB_HOLD_FLAG)) ~= 0;
+		local lt = bit32.band(P:getLeftClickMode(),  bit32.bor(NH.LEFT_MB_DOWN_FLAG,  NH.LEFT_MB_HOLD_FLAG))  ~= 0;
+		if     (lt) then P.walkFB =  1;   -- right trigger (reports as left-click/aim path): drive forward
+		elseif (rt) then P.walkFB = -1;   -- left trigger:  brake / reverse
+		else             P.walkFB =  0;   -- neither:       coast (stick can't drive it)
+		end
+		return false;
+	end
 
 	-- Custom render: the engine already draws the cab BODY (overriding this hook
 	-- ADDS to that render, it does not replace it). So here we add the six model
@@ -286,3 +309,28 @@ if (defineEntityTypesUserCallback == nil) then defineEntityTypesUserCallback = {
 defineEntityTypesUserCallback[#defineEntityTypesUserCallback + 1] = { "SemiTruckMod|semi cab + trailer entities", define_semi_truck }
 if (defineOtherItemsUserCallback == nil) then defineOtherItemsUserCallback = {}; end
 defineOtherItemsUserCallback[#defineOtherItemsUserCallback + 1] = { "SemiTruckMod|semi spawn item", define_semi_truck_item }
+
+-- Because the drive triggers are the same ones bound to fire/aim (and we remap
+-- NOTHING), pulling a trigger to drive would otherwise also fire the gun. The
+-- fire decision is a Lua dispatch, onUseFunctions[IMT_Gun]; wrap it so a player
+-- who is in a vehicle simply doesn't fire. Installed once from the server tick,
+-- after the weapon scripts have set the dispatch. On-foot shooting is unaffected.
+SEMI_FIRE_GUARD_DONE = false;
+local function semi_install_fire_guard ()
+	if (SEMI_FIRE_GUARD_DONE) then return; end
+	if (onUseFunctions == nil or IMT_Gun == nil) then return; end
+	local orig = onUseFunctions[IMT_Gun];
+	if (orig == nil) then return; end
+	onUseFunctions[IMT_Gun] = function (I, P, W, U, idx)
+		if (P ~= nil and P:getBoundEntityObj() ~= nil) then return false; end  -- in a vehicle: don't fire
+		return orig(I, P, W, U, idx);
+	end
+	SEMI_FIRE_GUARD_DONE = true;
+end
+
+if (customFunc == nil) then customFunc = {}; end
+SEMI_PREV_POLL_EXTRA = customFunc.pollServerTick_extra;
+customFunc.pollServerTick_extra = function (NH)
+	if (SEMI_PREV_POLL_EXTRA ~= nil) then SEMI_PREV_POLL_EXTRA(NH); end
+	semi_install_fire_guard();
+end
