@@ -1,0 +1,987 @@
+# ##################################################### ##################################################### 
+# db/meshes.txt
+# 
+# List of meshes used by turf, and thier hitboxes
+# 
+# Structure:
+# nMeshes
+# mesh_id1;RAW/TRANS;where_it_is;[arguments;]
+# mesh_id2;RAW/TRANS;where_it_is;[arguments;]
+# mesh_id3;RAW/TRANS;where_it_is;[arguments;]
+# etc
+#
+# mesh_id: Id of the mesh, used for
+# RAW/TRANS, use RAW to load a mesh from a file, or TRANS
+# to copy and transform an existing mesh.
+#
+# If the mesh in question is for an entity, don't transform it. If
+# it is for a block, then you must transform it. (Having turf transform
+# meshes at chunk building time would be slow!)
+#
+# Valid arguments of TRANS:
+# ROT90, ROT180, ROT270, IDENTITY
+# or
+# x,y,z|rx,ry,rz,rang
+# where (x, y, z) is the displacement, (rx, ry, rz) defines a axis of
+# rotation and rang is the angle around the axis in radians
+# if using ROT, define a pivot point to rotate about
+#
+# If using trans, the mesh being copied and manipulated must already be
+# loaded.
+#
+# ##################################################### ##################################################### 
+
+371
+#sapling
+0;RAW;smalltree.obj;0
+#stairs
+1;RAW;stairs.obj;0
+2;TRANS;1;ROT90;0.5;0.5;0.5
+3;TRANS;1;ROT180;0.5;0.5;0.5
+4;TRANS;1;ROT270;0.5;0.5;0.5
+# doors
+5;RAW;door.obj;0
+6;TRANS;5;ROT90;0.5;1;0.5
+7;TRANS;5;ROT180;0.5;1;0.5
+8;TRANS;5;ROT270;0.5;1;0.5
+# trapdoors
+9;RAW;trapdoor.obj;0
+10;TRANS;9;ROT90;0.5;0.5;0.5
+11;TRANS;9;ROT180;0.5;0.5;0.5
+12;TRANS;9;ROT270;0.5;0.5;0.5
+13;TRANS;9;ROT270Z;0.5;0.5;0.5
+14;TRANS;10;ROT90X;0.5;0.5;0.5
+15;TRANS;11;ROT90Z;0.5;0.5;0.5
+16;TRANS;12;ROT270X;0.5;0.5;0.5
+17;TRANS;9;ROT180X;0.5;0.5;0.5
+18;TRANS;10;ROT180Z;0.5;0.5;0.5
+19;TRANS;11;ROT180X;0.5;0.5;0.5
+20;TRANS;12;ROT180Z;0.5;0.5;0.5
+21;TRANS;13;ROT180X;0.5;0.5;0.5
+22;TRANS;14;ROT180Z;0.5;0.5;0.5
+23;TRANS;15;ROT180X;0.5;0.5;0.5
+24;TRANS;16;ROT180Z;0.5;0.5;0.5
+# switches
+25;RAW;switch.obj;0
+26;TRANS;25;ROT90;0.5;1;0.5
+27;TRANS;25;ROT180;0.5;1;0.5
+28;TRANS;25;ROT270;0.5;1;0.5
+29;RAW;switch2.obj;0
+30;TRANS;29;ROT90;0.5;1;0.5
+31;TRANS;29;ROT180;0.5;1;0.5
+32;TRANS;29;ROT270;0.5;1;0.5
+# levers
+33;RAW;lever.obj;0
+34;TRANS;33;ROT90;0.5;0.5;0.5
+35;TRANS;33;ROT180;0.5;0.5;0.5
+36;TRANS;33;ROT270;0.5;0.5;0.5
+37;RAW;lever2.obj;0
+38;TRANS;37;ROT90;0.5;0.5;0.5
+39;TRANS;37;ROT180;0.5;0.5;0.5
+40;TRANS;37;ROT270;0.5;0.5;0.5
+41;TRANS;33;ROT90Z;0.5;0.5;0.5
+42;TRANS;34;ROT270X;0.5;0.5;0.5
+43;TRANS;35;ROT270Z;0.5;0.5;0.5
+44;TRANS;36;ROT90X;0.5;0.5;0.5
+45;TRANS;37;ROT90Z;0.5;0.5;0.5
+46;TRANS;38;ROT270X;0.5;0.5;0.5
+47;TRANS;39;ROT270Z;0.5;0.5;0.5
+48;TRANS;40;ROT90X;0.5;0.5;0.5
+# Lights
+49;RAW;light.obj;0
+50;TRANS;49;ROT180Z;0.5;0.5;0.5
+51;TRANS;49;ROT270Z;0.5;0.5;0.5
+52;TRANS;51;ROT90;0.5;0.5;0.5
+53;TRANS;51;ROT180;0.5;0.5;0.5
+54;TRANS;51;ROT270;0.5;0.5;0.5
+# Roller doors
+55;RAW;rollerdoor.obj;0
+56;TRANS;55;ROT90;0.5;1;0.5
+57;TRANS;55;ROT180;0.5;1;0.5
+58;TRANS;55;ROT270;0.5;1;0.5
+59;RAW;rollerdoor_open.obj;0
+60;TRANS;59;ROT90;0.5;1;0.5
+61;TRANS;59;ROT180;0.5;1;0.5
+62;TRANS;59;ROT270;0.5;1;0.5
+# Buttons
+63;RAW;button.obj;0
+64;TRANS;63;ROT180Z;0.5;0.5;0.5
+65;TRANS;63;ROT270Z;0.5;0.5;0.5
+66;TRANS;65;ROT90;0.5;0.5;0.5
+67;TRANS;65;ROT180;0.5;0.5;0.5
+68;TRANS;65;ROT270;0.5;0.5;0.5
+69;RAW;button_pressed.obj;0
+70;TRANS;69;ROT180Z;0.5;0.5;0.5
+71;TRANS;69;ROT270Z;0.5;0.5;0.5
+72;TRANS;71;ROT90;0.5;0.5;0.5
+73;TRANS;71;ROT180;0.5;0.5;0.5
+74;TRANS;71;ROT270;0.5;0.5;0.5
+# Blank
+75;RAW;wheel.obj
+76;RAW;wheel2.obj
+# Rocket
+77;RAW;rocket.obj;0
+# Street Lights
+78;RAW;strlight_pole.obj;0
+79;RAW;strlight_top.obj;0
+80;TRANS;79;ROT90;0.5;0.5;0.5
+81;TRANS;79;ROT180;0.5;0.5;0.5
+82;TRANS;79;ROT270;0.5;0.5;0.5
+83;RAW;strlight_top_double.obj;0
+84;TRANS;83;ROT90;0.5;0.5;0.5
+85;RAW;strlight_top_cross.obj;0
+86;RAW;strlight_top_t.obj;0
+87;TRANS;86;ROT90;0.5;0.5;0.5
+88;TRANS;86;ROT180;0.5;0.5;0.5
+89;TRANS;86;ROT270;0.5;0.5;0.5
+90;RAW;strlight_top_L.obj;0
+91;TRANS;90;ROT90;0.5;0.5;0.5
+92;TRANS;90;ROT180;0.5;0.5;0.5
+93;TRANS;90;ROT270;0.5;0.5;0.5
+# Trolley
+94;RAW;trolley.obj;0
+# Barrel
+95;RAW;barrel.obj;0
+96;RAW;bbarrel.obj;0
+# Character
+97;raw;character.obj;0
+# Chest
+98;raw;chest.obj;0
+99;TRANS;98;ROT90;0.5;0.5;0.5
+100;TRANS;98;ROT180;0.5;0.5;0.5
+101;TRANS;98;ROT270;0.5;0.5;0.5
+# Double Chest
+102;raw;doublechest.obj;0
+103;TRANS;102;ROT90;0.5;0.5;0.5
+104;TRANS;102;ROT180;0.5;0.5;0.5
+105;TRANS;102;ROT270;0.5;0.5;0.5
+# Crouching Character
+106;RAW;charactercrouching.obj;0
+107;RAW;charactercrouchinghb.obj;0
+108;RAW;characterhead.obj;0
+109;RAW;characterwhole.obj;0
+110;RAW;character_leg1.obj;0
+111;RAW;character_leg2.obj;0
+112;RAW;character_arm1.obj;0
+113;RAW;character_arm2.obj;0
+# Vehicles
+114;RAW;sedan.obj;0
+115;RAW;sedan_hitbox.obj;0
+116;RAW;sedan_headlights.obj;0
+117;RAW;sedan_taillights.obj;0
+118;RAW;van.obj;0
+119;RAW;van_hitbox.obj;0
+120;RAW;van_headlights.obj;0
+121;RAW;van_taillights.obj;0
+122;RAW;suv.obj;0
+123;RAW;suv_hitbox.obj;0
+124;RAW;suv_headlights.obj;0
+125;RAW;suv_taillights.obj;0
+126;RAW;ute.obj;0
+127;RAW;ute_hitbox.obj;0
+128;RAW;ute_headlights.obj;0
+129;RAW;ute_taillights.obj;0
+130;RAW;minivan.obj;0
+131;RAW;minivan_hitbox.obj;0
+132;RAW;minivan_headlights.obj;0
+133;RAW;minivan_taillights.obj;0
+134;RAW;helicopter.obj;0
+135;RAW;helicopter_hitbox.obj;0
+136;RAW;helicopter_rotor.obj;0
+137;RAW;helicopter_tail_rotor.obj;0
+138;RAW;tank.obj;0
+139;RAW;tank_hitbox.obj;0
+140;RAW;tank_wheel.obj;0
+141;RAW;tank_turret.obj;0
+142;RAW;tank_barrel.obj;0
+143;RAW;tank_headlights.obj;0
+144;RAW;tank_taillights.obj;0
+# Grenade
+145;RAW;grenade.obj;0
+
+# Large Sliding Doors
+# 5x5, open left
+146;RAW;sliding5x5.obj;0
+147;TRANS;146;ROT90;0.5;1;0.5
+148;TRANS;146;ROT180;0.5;1;0.5
+149;TRANS;146;ROT270;0.5;1;0.5
+150;RAW;sliding5x5open.obj;0
+151;TRANS;150;ROT90;0.5;1;0.5
+152;TRANS;150;ROT180;0.5;1;0.5
+153;TRANS;150;ROT270;0.5;1;0.5
+# 5x5, open right
+154;RAW;sliding5x5a.obj;0
+155;TRANS;154;ROT90;0.5;1;0.5
+156;TRANS;154;ROT180;0.5;1;0.5
+157;TRANS;154;ROT270;0.5;1;0.5
+158;RAW;sliding5x5opena.obj;0
+159;TRANS;158;ROT90;0.5;1;0.5
+160;TRANS;158;ROT180;0.5;1;0.5
+161;TRANS;158;ROT270;0.5;1;0.5
+
+# 7x7, open left
+162;RAW;sliding7x7.obj;0
+163;TRANS;162;ROT90;0.5;1;0.5
+164;TRANS;162;ROT180;0.5;1;0.5
+165;TRANS;162;ROT270;0.5;1;0.5
+166;RAW;sliding7x7open.obj;0
+167;TRANS;166;ROT90;0.5;1;0.5
+168;TRANS;166;ROT180;0.5;1;0.5
+169;TRANS;166;ROT270;0.5;1;0.5
+# 7x7, open right
+170;RAW;sliding7x7a.obj;0
+171;TRANS;170;ROT90;0.5;1;0.5
+172;TRANS;170;ROT180;0.5;1;0.5
+173;TRANS;170;ROT270;0.5;1;0.5
+174;RAW;sliding7x7opena.obj;0
+175;TRANS;174;ROT90;0.5;1;0.5
+176;TRANS;174;ROT180;0.5;1;0.5
+177;TRANS;174;ROT270;0.5;1;0.5
+
+# 2x2, open left
+178;RAW;sliding2x2.obj;0
+179;TRANS;178;ROT90;0.5;1;0.5
+180;TRANS;178;ROT180;0.5;1;0.5
+181;TRANS;178;ROT270;0.5;1;0.5
+182;RAW;sliding2x2open.obj;0
+183;TRANS;182;ROT90;0.5;1;0.5
+184;TRANS;182;ROT180;0.5;1;0.5
+185;TRANS;182;ROT270;0.5;1;0.5
+# 2x2, open right
+186;RAW;sliding2x2a.obj;0
+187;TRANS;186;ROT90;0.5;1;0.5
+188;TRANS;186;ROT180;0.5;1;0.5
+189;TRANS;186;ROT270;0.5;1;0.5
+190;RAW;sliding2x2opena.obj;0
+191;TRANS;190;ROT90;0.5;1;0.5
+192;TRANS;190;ROT180;0.5;1;0.5
+193;TRANS;190;ROT270;0.5;1;0.5
+#2x2, open above
+194;TRANS;178;1,0,0|0,0,-1,4.71238898038
+195;TRANS;194;ROT90;0.5;0;0.5
+196;TRANS;194;ROT180;0.5;0;0.5
+197;TRANS;194;ROT270;0.5;0;0.5
+198;TRANS;182;1,0,0|0,0,-1,4.71238898038
+199;TRANS;198;ROT90;0.5;0;0.5
+200;TRANS;198;ROT180;0.5;0;0.5
+201;TRANS;198;ROT270;0.5;0;0.5
+
+# 1x4 Boom Gate
+202;RAW;boomgate.obj;0
+203;TRANS;202;ROT90;0.5;1;0.5
+204;TRANS;202;ROT180;0.5;1;0.5
+205;TRANS;202;ROT270;0.5;1;0.5
+206;RAW;boomgateopen.obj;0
+207;TRANS;206;ROT90;0.5;1;0.5
+208;TRANS;206;ROT180;0.5;1;0.5
+209;TRANS;206;ROT270;0.5;1;0.5
+210;RAW;boomgateconvexcomponent.obj;0
+
+# CDF Sirens
+211;RAW;siren1.obj;0
+212;RAW;siren2.obj;0
+213;RAW;siren_middle.obj;0
+
+# Streetlight
+214;TRANS;50;0,6,0|0,1,0,0
+
+# Trafic light
+215;RAW;trafficlight.obj;0
+216;TRANS;215;ROT90;0.5;1;0.5
+217;TRANS;215;ROT180;0.5;1;0.5
+218;TRANS;215;ROT270;0.5;1;0.5
+
+# Street Lights Pieces
+219;RAW;strlight_pole1.obj;0
+220;RAW;strlight_pole2.obj;0
+
+# Trafic light wall mount
+221;RAW;trafficlightwall.obj;0
+222;TRANS;221;ROT90;0.5;1;0.5
+223;TRANS;221;ROT180;0.5;1;0.5
+224;TRANS;221;ROT270;0.5;1;0.5
+
+# Elevator Cab
+225;RAW;elevatorcab.obj;0
+226;TRANS;225;ROT90;0.5;1;0.5
+227;TRANS;225;ROT180;0.5;1;0.5
+228;TRANS;225;ROT270;0.5;1;0.5
+
+# Elevator Door
+229;RAW;elevatordoor.obj;0
+230;TRANS;229;ROT90;0.5;1;0.5
+231;TRANS;229;ROT180;0.5;1;0.5
+232;TRANS;229;ROT270;0.5;1;0.5
+
+# Elevator Door Open
+233;RAW;elevatordoor_open.obj;0
+234;TRANS;233;ROT90;0.5;1;0.5
+235;TRANS;233;ROT180;0.5;1;0.5
+236;TRANS;233;ROT270;0.5;1;0.5
+
+#Body Armour/Hat
+237;RAW;characterarmour.obj;0
+238;RAW;characterarmourcrouching.obj;0
+239;RAW;characterhat.obj;0
+240;RAW;characterhat2.obj;0
+241;RAW;characterhat3.obj;0
+242;RAW;characterhat4.obj;0
+243;RAW;characterhat5.obj;0
+244;RAW;characterhat6.obj;0
+245;RAW;characterhat7.obj;0
+246;RAW;characterhat8.obj;0
+
+# Rocket Launchers
+247;RAW;rocket_launcher_single.obj;0
+248;RAW;rocket_launcher_double.obj;0
+249;RAW;rocket_launcher_single.obj;0
+250;RAW;rocket_launcher_quad.obj;0
+
+# Weapons
+251;RAW;pistol.obj;0
+252;RAW;pistol_double.obj;0
+253;RAW;assault_rifle.obj;0
+254;RAW;assault_rifle_double.obj;0
+255;RAW;shotgun.obj;0
+256;RAW;smg.obj;0
+257;RAW;smg_double.obj;0
+258;RAW;rifle.obj;0
+259;RAW;rifle_double.obj;0
+260;RAW;weapon9.obj;0
+261;RAW;weapon10.obj;0
+262;RAW;weapon11.obj;0
+263;RAW;weapon12.obj;0
+264;RAW;weapon13.obj;0
+265;RAW;weapon14.obj;0
+266;RAW;weapon15.obj;0
+
+# Block Particle
+267;RAW;blockparticle.obj;0
+
+# Boats
+268;RAW;boat.obj;0
+269;RAW;hovercraft.obj;0
+270;RAW;hovercraftfan.obj;0
+271;RAW;hovercraft_hitbox.obj;0
+
+# Burning Barrel Fire
+272;RAW;bbarrel_fire.obj;0
+
+# Banner Flags
+# Pole
+273;RAW;hangingflag_pole.obj;0
+274;TRANS;273;ROT90;0.5;1;0.5
+275;TRANS;273;ROT180;0.5;1;0.5
+276;TRANS;273;ROT270;0.5;1;0.5
+
+277;RAW;hangingflag_flag.obj;0
+278;TRANS;277;ROT90;0.5;1;0.5
+279;TRANS;277;ROT180;0.5;1;0.5
+280;TRANS;277;ROT270;0.5;1;0.5
+
+281;RAW;hangingflag_pole2.obj;0
+282;TRANS;281;ROT90;0.5;1;0.5
+283;TRANS;281;ROT180;0.5;1;0.5
+284;TRANS;281;ROT270;0.5;1;0.5
+
+285;RAW;hangingflag_flag2.obj;0
+286;TRANS;285;ROT90;0.5;1;0.5
+287;TRANS;285;ROT180;0.5;1;0.5
+288;TRANS;285;ROT270;0.5;1;0.5
+
+# Hanging wall flags
+289;RAW;wallflag_hanging.obj;0
+290;TRANS;289;ROT90;0.5;1;0.5
+291;TRANS;289;ROT180;0.5;1;0.5
+292;TRANS;289;ROT270;0.5;1;0.5
+
+293;RAW;wallflag_hanging_flag.obj;0
+294;TRANS;293;ROT90;0.5;1;0.5
+295;TRANS;293;ROT180;0.5;1;0.5
+296;TRANS;293;ROT270;0.5;1;0.5
+
+297;RAW;wallflag_hanging2.obj;0
+298;TRANS;297;ROT90;0.5;1;0.5
+299;TRANS;297;ROT180;0.5;1;0.5
+300;TRANS;297;ROT270;0.5;1;0.5
+
+301;RAW;wallflag_hanging2_flag.obj;0
+302;TRANS;301;ROT90;0.5;1;0.5
+303;TRANS;301;ROT180;0.5;1;0.5
+304;TRANS;301;ROT270;0.5;1;0.5
+
+305;RAW;wallflag_hanging3.obj;0
+306;TRANS;305;ROT90;0.5;1;0.5
+307;TRANS;305;ROT180;0.5;1;0.5
+308;TRANS;305;ROT270;0.5;1;0.5
+
+309;RAW;wallflag_hanging3_flag.obj;0
+310;TRANS;309;ROT90;0.5;1;0.5
+311;TRANS;309;ROT180;0.5;1;0.5
+312;TRANS;309;ROT270;0.5;1;0.5
+
+# Wall flags
+313;RAW;wallflag.obj;0
+314;TRANS;313;ROT90;0.5;1;0.5
+315;TRANS;313;ROT180;0.5;1;0.5
+316;TRANS;313;ROT270;0.5;1;0.5
+
+317;RAW;wallflag_flag.obj;0
+318;TRANS;317;ROT90;0.5;1;0.5
+319;TRANS;317;ROT180;0.5;1;0.5
+320;TRANS;317;ROT270;0.5;1;0.5
+
+321;RAW;wallflag2.obj;0
+322;TRANS;321;ROT90;0.5;1;0.5
+323;TRANS;321;ROT180;0.5;1;0.5
+324;TRANS;321;ROT270;0.5;1;0.5
+
+325;RAW;wallflag2_flag.obj;0
+326;TRANS;325;ROT90;0.5;1;0.5
+327;TRANS;325;ROT180;0.5;1;0.5
+328;TRANS;325;ROT270;0.5;1;0.5
+
+329;RAW;wallflag3.obj;0
+330;TRANS;329;ROT90;0.5;1;0.5
+331;TRANS;329;ROT180;0.5;1;0.5
+332;TRANS;329;ROT270;0.5;1;0.5
+
+333;RAW;wallflag3_flag.obj;0
+334;TRANS;333;ROT90;0.5;1;0.5
+335;TRANS;333;ROT180;0.5;1;0.5
+336;TRANS;333;ROT270;0.5;1;0.5
+
+337;RAW;wallflag4.obj;0
+338;TRANS;337;ROT90;0.5;1;0.5
+339;TRANS;337;ROT180;0.5;1;0.5
+340;TRANS;337;ROT270;0.5;1;0.5
+
+341;RAW;wallflag4_flag.obj;0
+342;TRANS;341;ROT90;0.5;1;0.5
+343;TRANS;341;ROT180;0.5;1;0.5
+344;TRANS;341;ROT270;0.5;1;0.5
+
+# Light Plane
+345;RAW;lightplane.obj;0
+346;RAW;lightplane_prop.obj;0
+347;RAW;lightplane_innerflap.obj;0
+348;RAW;lightplane_outerflap.obj;0
+349;RAW;lightplane_rearflap.obj;0
+350;RAW;lightplane_innerflapR.obj;0
+351;RAW;lightplane_outerflapR.obj;0
+352;RAW;lightplane_rearflapR.obj;0
+353;RAW;lightplane_rudder.obj;0
+354;RAW;lightplane_frontwheel.obj;0
+355;RAW;lightplane_sidewheel.obj;0
+
+# Cactus
+356;RAW;cactus.obj;0
+357;TRANS;356;ROT90;0.5;1;0.5
+358;TRANS;356;ROT180;0.5;1;0.5
+359;TRANS;356;ROT270;0.5;1;0.5
+
+
+# ##################################################### ##################################################### 
+# HIT BOXES
+# nHitboxes
+# hitboxId;MESH/SHAPE/TRANS;[arguments;]
+# Use shapes in preferance to other meshes for better performance.
+#
+# Valid shapes types:
+# BOX, arguments: x_width/2, y_width/2, z_width/2 | x_offset, y_offset, z_offset | rx, ry, rz, rot
+# (rotation is a quaternion)
+# SPHERE, armuments: radius | x_offset, y_offset, z_offset | rx, ry, rz, rot
+# CONVEX_HULL: x1, y1, z1 | x2, y2, z2 | ... etc
+# CONVEX_DECOMPOSITION: Mesh Id. Produces an optimised convex hull shape from a supplied mesh. 
+# # COMPOUND_SHAPE: BOX/SHPERE/CONVEX_HULL;<relevent args>;BOX/SHPERE/CONVEX_HULL;<relevent args>;etc
+#
+# # MESH: Use a mesh as the collision object. Id of loaded mesh, transform of mesh.
+# # MESH: <id of mesh>; x_offset, y_offset, z_offset | rx, ry, rz, rot
+#
+# TRANS: Like mesh transformations
+# TRANS: <id of hitbox>;ROT90/ROT180/ROT270/IDENTITY;pivotx;pivoty;pivotz
+# or
+# TRANS: <id of hitbox>; x_offset, y_offset, z_offset | x_rot, y_rot, z_rot, w_rot
+#
+# NULL: No hitbox (good for grass/placeholders, etc)
+#
+# It is recommended to use a simplified version of a mesh if possible. (Blender->decimate is your friend)
+# ##################################################### ##################################################### 
+
+# --- SemiTruckMod ---
+360;RAW;semicab.obj;0
+361;RAW;semitrailer.obj;0
+362;RAW;semicab_hull.obj;0
+363;RAW;semitrailer_hull.obj;0
+364;RAW;emptywheel.obj;0
+365;RAW;wheel_FL.obj;0
+366;RAW;wheel_FR.obj;0
+367;RAW;wheel_TFL.obj;0
+368;RAW;wheel_TFR.obj;0
+369;RAW;wheel_TRL.obj;0
+370;RAW;wheel_TRR.obj;0
+369
+#small tree
+0;NULL
+#stairs
+1;CONVEX_DECOMPOSITION;1
+2;TRANS;1;ROT90;0.5;0.5;0.5
+3;TRANS;1;ROT180;0.5;0.5;0.5
+4;TRANS;1;ROT270;0.5;0.5;0.5
+# doors
+5;SHAPE;BOX;0.0625,1,0.5|0.0625,1,0.5|0,1,0,0
+6;TRANS;5;ROT90;0.5;1;0.5
+7;TRANS;5;ROT180;0.5;1;0.5
+8;TRANS;5;ROT270;0.5;1;0.5
+# trapdoors
+9;SHAPE;BOX;0.5,0.0625,0.5|0.5,0.0625,0.5|0,1,0,0
+10;TRANS;9;ROT90;0.5;0.5;0.5
+11;TRANS;9;ROT180;0.5;0.5;0.5
+12;TRANS;9;ROT270;0.5;0.5;0.5
+13;TRANS;9;ROT270Z;0.5;0.5;0.5
+14;TRANS;10;ROT90X;0.5;0.5;0.5
+15;TRANS;11;ROT90Z;0.5;0.5;0.5
+16;TRANS;12;ROT270X;0.5;0.5;0.5
+17;TRANS;9;ROT180X;0.5;0.5;0.5
+18;TRANS;10;ROT180Z;0.5;0.5;0.5
+19;TRANS;11;ROT180X;0.5;0.5;0.5
+20;TRANS;12;ROT180Z;0.5;0.5;0.5
+21;TRANS;13;ROT180X;0.5;0.5;0.5
+22;TRANS;14;ROT180Z;0.5;0.5;0.5
+23;TRANS;15;ROT180X;0.5;0.5;0.5
+24;TRANS;16;ROT180Z;0.5;0.5;0.5
+# switches
+25;NULL
+26;NULL
+27;NULL
+28;NULL
+29;NULL
+30;NULL
+31;NULL
+32;NULL
+33;NULL
+34;NULL
+35;NULL
+36;NULL
+37;NULL
+38;NULL
+39;NULL
+40;NULL
+41;NULL
+42;NULL
+43;NULL
+44;NULL
+45;NULL
+46;NULL
+47;NULL
+48;NULL
+49;NULL
+50;NULL
+51;NULL
+52;NULL
+53;NULL
+54;NULL
+55;SHAPE;BOX;0.07,1.5,1.5|0.963,1.5,0.5|0,1,0,0
+56;TRANS;55;ROT90;0.5;1;0.5
+57;TRANS;55;ROT180;0.5;1;0.5
+58;TRANS;55;ROT270;0.5;1;0.5
+59;SHAPE;BOX;0.07,0.15,1.5|0.963,2.85,0.5|0,1,0,0
+60;TRANS;59;ROT90;0.5;1;0.5
+61;TRANS;59;ROT180;0.5;1;0.5
+62;TRANS;59;ROT270;0.5;1;0.5
+63;NULL
+64;NULL
+65;NULL
+66;NULL
+67;NULL
+68;NULL
+69;NULL
+70;NULL
+71;NULL
+72;NULL
+73;NULL
+74;NULL
+#Vehicles
+75;CONVEX_DECOMPOSITION;75
+76;CONVEX_DECOMPOSITION;76
+# Rocket
+77;AABB;77
+# Street Light
+78;AABB;78
+79;SHAPE;BOX;0.15,0.15,2|0.5,0.0725,2.5|0,1,0,0
+80;TRANS;79;ROT90;0.5;1;0.5
+81;TRANS;79;ROT180;0.5;1;0.5
+82;TRANS;79;ROT270;0.5;1;0.5
+83;SHAPE;BOX;0.15,0.15,4.2|0.5,0.0725,0.5|0,1,0,0
+84;TRANS;83;ROT90;0.5;1;0.5
+85;SHAPE;COMPOUND_SHAPE;BOX;0.15,0.15,4.2|0.5,0.0725,0.5|0,1,0,0;BOX;4.2,0.15,0.15|0.5,0.0725,0.5|0,1,0,0
+86;SHAPE;COMPOUND_SHAPE;BOX;0.15,0.15,4.2|0.5,0.0725,0.5|0,1,0,0;BOX;2,0.15,0.15|2.5,0.0725,0.5|0,1,0,0
+87;TRANS;86;ROT90;0.5;1;0.5
+88;TRANS;86;ROT180;0.5;1;0.5
+89;TRANS;86;ROT270;0.5;1;0.5
+90;SHAPE;COMPOUND_SHAPE;BOX;0.15,0.15,2|0.5,0.0725,2.5|0,1,0,0;BOX;2,0.15,0.15|2.5,0.0725,0.5|0,1,0,0
+91;TRANS;90;ROT90;0.5;1;0.5
+92;TRANS;90;ROT180;0.5;1;0.5
+93;TRANS;90;ROT270;0.5;1;0.5
+# Trolley
+94;SHAPE;BOX;0.35,0.48,0.48|0,0.48,-0.04|0,1,0,0
+# aabb for trolley: AABB for mesh 94: -0.46, 0.02, -0.32 | 0.38, 0.94, 0.32
+# Barrel
+95;CONVEX_DECOMPOSITION;95
+96;CONVEX_DECOMPOSITION;96
+# Character
+97;AABB_CAPSULE;109;0.0;0.5;0.0;0.23
+# Chest
+98;AABB;98
+99;AABB;99
+100;AABB;100
+101;AABB;101
+# DoubleChest
+102;AABB;102
+103;AABB;103
+104;AABB;104
+105;AABB;105
+# Crouching Character
+106;CONVEX_DECOMPOSITION;107
+107;AABB_CAPSULE;107;0;0;0;0.23;0.85
+108;NULL
+109;NULL
+110;NULL
+111;NULL
+112;NULL
+113;NULL
+# Vechile
+114;CONVEX_DECOMPOSITION;115
+115;NULL
+116;NULL
+117;NULL
+118;CONVEX_DECOMPOSITION;119
+119;NULL
+120;NULL
+121;NULL
+122;CONVEX_DECOMPOSITION;123
+123;NULL
+124;NULL
+125;NULL
+126;CONVEX_DECOMPOSITION;127
+127;NULL
+128;NULL
+129;NULL
+130;CONVEX_DECOMPOSITION;131
+131;NULL
+132;NULL
+133;NULL
+134;CONVEX_DECOMPOSITION;135
+135;NULL
+136;NULL
+137;NULL
+138;CONVEX_DECOMPOSITION;139
+139;NULL
+140;NULL
+141;NULL
+142;NULL
+143;NULL
+144;NULL
+# Grenade
+145;CONVEX_DECOMPOSITION;145
+
+
+# Large Sliding Doors
+# 5x5, open left
+146;AABB;146
+147;AABB;147
+148;AABB;148
+149;AABB;149
+150;SHAPE;BOX;0.1,2.5,0.1|0.9,2.5,-1.9|0,1,0,0
+151;TRANS;150;ROT90;0.5;1;0.5
+152;TRANS;150;ROT180;0.5;1;0.5
+153;TRANS;150;ROT270;0.5;1;0.5
+# 5x5, open right
+154;AABB;154
+155;AABB;155
+156;AABB;156
+157;AABB;157
+158;SHAPE;BOX;0.1,2.5,0.1|0.9,2.5,2.9|0,1,0,0
+159;TRANS;158;ROT90;0.5;1;0.5
+160;TRANS;158;ROT180;0.5;1;0.5
+161;TRANS;158;ROT270;0.5;1;0.5
+
+# 7x7, open left
+162;AABB;162
+163;AABB;163
+164;AABB;164
+165;AABB;165
+166;SHAPE;BOX;0.1,3.5,0.1|0.9,3.5,-2.9|0,1,0,0
+167;TRANS;166;ROT90;0.5;1;0.5
+168;TRANS;166;ROT180;0.5;1;0.5
+169;TRANS;166;ROT270;0.5;1;0.5
+# 7x7, open right
+170;AABB;170
+171;AABB;171
+172;AABB;172
+173;AABB;173
+174;SHAPE;BOX;0.1,3.5,0.1|0.9,3.5,3.9|0,1,0,0
+175;TRANS;174;ROT90;0.5;1;0.5
+176;TRANS;174;ROT180;0.5;1;0.5
+177;TRANS;174;ROT270;0.5;1;0.5
+
+# 2x2, open left
+178;AABB;178
+179;AABB;179
+180;AABB;180
+181;AABB;181
+182;SHAPE;BOX;0.1,1.0,0.1|0.9,1.0,-0.9|0,1,0,0
+183;TRANS;182;ROT90;0.5;1;0.5
+184;TRANS;182;ROT180;0.5;1;0.5
+185;TRANS;182;ROT270;0.5;1;0.5
+# 2x2, open right
+186;AABB;186
+187;AABB;187
+188;AABB;188
+189;AABB;189
+190;SHAPE;BOX;0.1,1.0,0.1|0.9,1.0,0.9|0,1,0,0
+191;TRANS;190;ROT90;0.5;1;0.5
+192;TRANS;190;ROT180;0.5;1;0.5
+193;TRANS;190;ROT270;0.5;1;0.5
+# 2x2, open above
+194;AABB;194
+195;AABB;195
+196;AABB;196
+197;AABB;197
+198;SHAPE;BOX;1.0,0.1,0.1|0,0.9,-0.9|0,1,0,0
+199;TRANS;198;ROT90;0.5;1;0.5
+200;TRANS;198;ROT180;0.5;1;0.5
+201;TRANS;198;ROT270;0.5;1;0.5
+
+# 1x4 Boom Gate
+202;SHAPE;COMPOUND_SHAPE;CONVEX_DECOMPOSITION;210;BOX;0.06,0.04,0.4|0.5,0.4,1.94527|0,1,0,0;BOX;0.06,0.06,2.0|0.5,0.8,0.0|0,1,0,0
+203;TRANS;202;ROT90;0.5;1;0.5
+204;TRANS;202;ROT180;0.5;1;0.5
+205;TRANS;202;ROT270;0.5;1;0.5
+206;SHAPE;COMPOUND_SHAPE;CONVEX_DECOMPOSITION;210;BOX;0.06,0.04,0.4|0.5,0.4,1.94527|0,1,0,0
+207;TRANS;206;ROT90;0.5;1;0.5
+208;TRANS;206;ROT180;0.5;1;0.5
+209;TRANS;206;ROT270;0.5;1;0.5
+210;NULL;0
+
+# Sirens
+211;NULL;0
+212;NULL;0
+213;NULL;0
+
+# Streetlight
+214;NULL
+
+# Trafic light
+215;AABB;215
+216;AABB;216
+217;AABB;217
+218;AABB;218
+
+# Street Light Pieces
+219;AABB;219
+220;AABB;220
+
+# Trafic light wall mount
+221;AABB;221
+222;AABB;222
+223;AABB;223
+224;AABB;224
+
+# Elevator Cab
+#                        Base                             Front Door                                                                     Rear Wall                            Side Walls                                                                 Roof
+225;SHAPE;COMPOUND_SHAPE;BOX;1.0,0.1,1.0|0,-0.1,0|0,1,0,0;BOX;0.1,1.0,0.25|-0.95,1.0,0.75|0,1,0,0;BOX;0.1,1.0,0.25|-0.95,1.0,-0.75|0,1,0,0;BOX;0.1,1.0,1.0|0.95,1.0,0|0,1,0,0;BOX;1.0,1.0,0.1|0.0,1.0,-0.95|0,1,0,0;BOX;1.0,1.0,0.1|0.0,1.0,0.95|0,1,0,0;BOX;1.0,0.1,1.0|0,1.95,0|0,1,0,0;
+226;TRANS;225;ROT90;0.5;1;0.5
+227;TRANS;225;ROT180;0.5;1;0.5
+228;TRANS;225;ROT270;0.5;1;0.5
+
+# Elevator Door
+229;AABB;229
+230;AABB;230
+231;AABB;231
+232;AABB;232
+
+# Elevator Open
+233;SHAPE;COMPOUND_SHAPE;BOX;0.1,1.0,0.25|0.95,1.0,0.75|0,1,0,0;BOX;0.1,1.0,0.25|0.95,1.0,-0.75|0,1,0,0
+#BOX;0.25,1.0,0.1|0.75,1.0,0.95|0,1,0,0;BOX;0.25,1.0,0.1|-0.75,1.0,0.95|0,1,0,0
+234;TRANS;233;ROT90;0.5;1;0.5
+235;TRANS;233;ROT180;0.5;1;0.5
+236;TRANS;233;ROT270;0.5;1;0.5
+
+# Body Armour/Hat
+237;NULL
+238;NULL
+239;NULL
+240;NULL
+241;NULL
+242;NULL
+243;NULL
+244;NULL
+245;NULL
+246;NULL
+
+# Rocket Launchers
+247;NULL
+248;NULL
+249;NULL
+250;NULL
+
+# Weapons
+251;NULL
+252;NULL
+253;NULL
+254;NULL
+255;NULL
+256;NULL
+257;NULL
+258;NULL
+259;NULL
+260;NULL
+261;NULL
+262;NULL
+263;NULL
+264;NULL
+265;NULL
+266;NULL
+
+# Block Particle
+267;AABB;267
+
+# Boats
+268;CONVEX_DECOMPOSITION;268
+269;CONVEX_DECOMPOSITION;271
+270;NULL
+271;NULL
+
+# BB Fire
+272;NULL
+
+# Banner Flags
+273;CONVEX_DECOMPOSITION;273
+274;TRANS;273;ROT90;0.5;0.5;0.5
+275;TRANS;273;ROT180;0.5;0.5;0.5
+276;TRANS;273;ROT270;0.5;0.5;0.5
+
+277;NULL
+278;NULL
+279;NULL
+280;NULL
+
+281;CONVEX_DECOMPOSITION;281
+282;TRANS;281;ROT90;0.5;0.5;0.5
+283;TRANS;281;ROT180;0.5;0.5;0.5
+284;TRANS;281;ROT270;0.5;0.5;0.5
+
+285;NULL
+286;NULL
+287;NULL
+288;NULL
+
+# Hanging wall flags
+289;CONVEX_DECOMPOSITION;289
+290;TRANS;281;ROT90;0.5;0.5;0.5
+291;TRANS;281;ROT180;0.5;0.5;0.5
+292;TRANS;281;ROT270;0.5;0.5;0.5
+
+293;NULL
+294;NULL
+295;NULL
+296;NULL
+
+297;CONVEX_DECOMPOSITION;297
+298;TRANS;297;ROT90;0.5;0.5;0.5
+299;TRANS;297;ROT180;0.5;0.5;0.5
+300;TRANS;297;ROT270;0.5;0.5;0.5
+
+301;NULL
+302;NULL
+303;NULL
+304;NULL
+
+305;CONVEX_DECOMPOSITION;305
+306;TRANS;305;ROT90;0.5;0.5;0.5
+307;TRANS;305;ROT180;0.5;0.5;0.5
+308;TRANS;305;ROT270;0.5;0.5;0.5
+
+309;NULL
+310;NULL
+311;NULL
+312;NULL
+
+# Wall flags
+313;CONVEX_DECOMPOSITION;313
+314;TRANS;313;ROT90;0.5;0.5;0.5
+315;TRANS;313;ROT180;0.5;0.5;0.5
+316;TRANS;313;ROT270;0.5;0.5;0.5
+
+317;NULL
+318;NULL
+319;NULL
+320;NULL
+
+321;CONVEX_DECOMPOSITION;321
+322;TRANS;321;ROT90;0.5;0.5;0.5
+323;TRANS;321;ROT180;0.5;0.5;0.5
+324;TRANS;321;ROT270;0.5;0.5;0.5
+
+325;NULL
+326;NULL
+327;NULL
+328;NULL
+
+329;CONVEX_DECOMPOSITION;329
+330;TRANS;329;ROT90;0.5;0.5;0.5
+331;TRANS;329;ROT180;0.5;0.5;0.5
+332;TRANS;329;ROT270;0.5;0.5;0.5
+
+333;NULL
+334;NULL
+335;NULL
+336;NULL
+
+337;CONVEX_DECOMPOSITION;337
+338;TRANS;337;ROT90;0.5;0.5;0.5
+339;TRANS;337;ROT180;0.5;0.5;0.5
+340;TRANS;337;ROT270;0.5;0.5;0.5
+
+341;NULL
+342;NULL
+343;NULL
+344;NULL
+
+# Light Plane
+345;CONVEX_DECOMPOSITION;345
+346;NULL
+347;NULL
+348;NULL
+349;NULL
+350;NULL
+351;NULL
+352;NULL
+353;NULL
+354;NULL
+355;NULL
+
+# Cactus
+356;AABB;356
+#SHAPE;COMPOUND_SHAPE;BOX;0.25,1.0,0.25|0.5,1.0,0.5|0,1,0,0;BOX;0.08,0.1,0.08|0.5,1.2,0.1|0,1,0,0
+357;TRANS;356;ROT90;0.5;1;0.5
+358;TRANS;356;ROT180;0.5;1;0.5
+359;TRANS;356;ROT270;0.5;1;0.5
+
+
+
+
+
+
+
+# --- SemiTruckMod hitboxes ---
+360;CONVEX_DECOMPOSITION;362
+361;CONVEX_DECOMPOSITION;363
+364;NULL
+365;NULL
+366;NULL
+367;NULL
+368;NULL
+369;NULL
+370;NULL

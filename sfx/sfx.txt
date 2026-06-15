@@ -1,0 +1,16 @@
+# #####################################################
+# SemiTruckMod/sfx/sfx.txt
+#
+# This file is COMBINED with the base game sfx/sfx.txt (the base file says so
+# explicitly: a mod sfx.txt is *not* an override, it is merged in). Every line
+# below ADDS a new tag. Nothing here replaces a vanilla sound - carhorn.wav,
+# carengineloop*.wav and every other base sound are left untouched.
+#
+# Structure (same as base): tag;filename[;volume]
+# Filenames resolve to this mod's sfx/ folder.
+# #####################################################
+
+# Air horn for the semi cab. Wired in scripts/semitruck.lua via:
+#     VP.sirenSoundTag = "SEMI_HORN";
+# Source: WABCO E2 diesel air-horn, CC0 (Wikimedia Commons). Stereo 44100 Hz 16-bit.
+SEMI_HORN;semihorn.wav;0.8
