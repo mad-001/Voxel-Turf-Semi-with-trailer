@@ -31,7 +31,7 @@
 #
 # ##################################################### ##################################################### 
 
-371
+372
 #sapling
 0;RAW;smalltree.obj;0
 #stairs
@@ -520,7 +520,8 @@
 368;RAW;wheel_TFR.obj;0
 369;RAW;wheel_TRL.obj;0
 370;RAW;wheel_TRR.obj;0
-369
+371;RAW;semitrailer_paint.obj;0
+370
 #small tree
 0;NULL
 #stairs
@@ -985,3 +986,4 @@
 368;NULL
 369;NULL
 370;NULL
+371;NULL

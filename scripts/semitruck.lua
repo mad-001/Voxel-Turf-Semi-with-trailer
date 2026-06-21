@@ -19,9 +19,17 @@ SEMI_TRAILER_RENDER_TYPE = -1   -- render-only component drawn with the cab (not
 SEMI_WHEEL_TYPE          = -1
 SEMI_CAB_MESH_ID         = 360  -- db/meshes.txt
 SEMI_TRAILER_MESH_ID     = 361
+SEMI_PAINT_MESH_ID       = 371  -- pristine v1.0.0 body (328 verts) for the PAINTED trailer
 SEMI_EMPTY_WHEEL_MESH    = 364  -- tiny invisible mesh: hides the engine's physics wheels so only the model's own wheels show
 SEMI_PAL_TEX_ID          = 0    -- overridden tex0: our own faithful palette (every model colour)
-SEMI_ITEM_SEEK           = 13950 -- /give item
+SEMI_ITEM_SEEK           = 13950 -- /give item (the cab, alone)
+
+-- The trailer is its OWN separate entity (a wheeled VehicleEntity). It is spawned
+-- INDEPENDENTLY via /give SemiTrailer -- never together with the cab. They only
+-- connect later, by backing the cab under its nose (added once this stands solo).
+SEMI_TRAILER_VEH_ID      = -1     -- the standalone trailer entity (-1 until its define succeeds)
+SEMI_TRAILER_ITEM_SEEK   = 13951  -- /give item that places a trailer on its own
+SEMI_TWHEEL_STATE        = {}     -- [client] trailerId -> { spin, px, pz } for its bogie wheels
 
 -- The six model wheels are split out of the cab mesh into their own meshes so
 -- they can spin (and the front pair steer). hub = position in cab-mesh-local
@@ -37,7 +45,7 @@ SEMI_WHEEL_DEFS = {
 SEMI_WHEELS        = {}     -- filled at define time: { typeId, hx,hy,hz, steer }
 -- Trailer bogie wheels: rendered as separate pieces (so they SPIN like the cab's)
 -- at these trailer-local positions. wi = index into SEMI_WHEELS for the wheel
--- TYPE to reuse (5 = TRL for +x side, 6 = TRR for -x side). y = 0.85 (dropped
+-- TYPE to reuse (5 = TRL for +x side, 6 = TRR for -x side). y = 0.4 (dropped
 -- 0.05 so they sit on the ground).
 SEMI_TRAILER_WHEELS = {
 	{ x =  0.49, y = 0.85, z = -3.4, wi = 5 },
@@ -55,10 +63,26 @@ SEMI_WHEEL_TRIM_Y  = -0.34  -- drop the wheels onto the axles (engine rests the 
 -- ---- coupling geometry (matches the .obj meshes) ---------------------------
 SEMI_HITCH_LOCAL_Y     = 0.9   -- fifth-wheel height on the cab (cab local; origin = wheel centre)
 SEMI_HITCH_LOCAL_Z     = -2.0  -- fifth-wheel sits behind the cab, over the drive axle
-SEMI_KINGPIN_LOCAL_Y   = 1.6   -- coupling height on the trailer (bigger = trailer rides lower)
-SEMI_KINGPIN_TO_CENTRE = 2.5   -- kingpin pivot in front of the trailer origin (smaller = trailer further forward)
+SEMI_KINGPIN_LOCAL_Y   = 1.20  -- kingpin pivot height up the gooseneck. HIGHER = trailer hangs LOWER
+                               -- from the fifth wheel (held at this point). Raised from 0.77 to drop
+                               -- the nose ~0.5 (was sitting half a wheel too high at the hitch).
+SEMI_KINGPIN_TO_CENTRE = 2.9   -- kingpin z (gooseneck-underside centre) in front of trailer origin
 SEMI_HITCH_LEN         = 6.4   -- kingpin -> trailer rear bogie centre (the trailing arm; longer = bends less)
-SEMI_TRAILER_TRIM_Y    = 0.0   -- vertical nudge for the trailer if it floats/sinks
+-- PAINTED-trailer offsets (v1.0.0 body mesh 371) -- separate from the parked-entity detection above
+SEMI_PAINT_KINGPIN_Y   = 1.6   -- v1.0.0 coupling height for the painted body
+SEMI_PAINT_KINGPIN_Z   = 2.5   -- v1.0.0 kingpin in front of the painted body origin
+SEMI_PAINT_TRIM_Y      = 0.0   -- v1.0.0 vertical trim for the painted body
+SEMI_COUPLED           = false -- true once coupled (parked entity hidden + painted trailer on)
+SEMI_COLLIDER_E        = nil   -- the spawned invisible heavy collider entity
+SEMI_COLLIDER_TYPE_ID  = -1    -- (unused now) old separate-collider type id
+SEMI_PARKED_TRIM_Y     = -0.74 -- vertical nudge for the PARKED painted body so its wheels meet the ground
+SEMI_TRAILER_VEH_TYPE  = nil   -- the trailer EntityType (so we can hide its mesh on couple)
+SEMI_SRV_TRX           = nil   -- server-side trailing bogie x (to pose the collider, matches the painted bend)
+SEMI_SRV_TRZ           = nil
+SEMI_HINGE             = nil   -- the live btHingeConstraint
+SEMI_COUPLE_DIST       = 1.5   -- fifth wheel within this (horizontal) of a kingpin -> swap to painted
+SEMI_CAB_COM_Y         = 0.3   -- cab centreOfMass is (0,-0.3,0); add this to turn cab mesh-local Y into body-local
+SEMI_TRAILER_TRIM_Y    = -0.27 -- vertical nudge so the painted trailer's wheels meet the ground
 
 -- ---- math helpers ----------------------------------------------------------
 local function semi_atan2 (y, x)
@@ -71,7 +95,8 @@ local function semi_atan2 (y, x)
 end
 local function semi_light_at (W, pos)
 	local lc = W:getLightAtLocationv(pos);
-	if (lc:isZero()) then lc = W:getLightAtLocationv(pos:add(turf.btVector3(0, 1, 0))); end
+	-- btVector3 here has no :add method -- build the +1Y sample point directly.
+	if (lc:isZero()) then lc = W:getLightAtLocationv(turf.btVector3(pos:x(), pos:y() + 1, pos:z())); end
 	return lc;
 end
 local function semi_level_forward (T)
@@ -88,7 +113,7 @@ function define_semi_truck (EntityTypes)
 	-- wheels). The cab's render hook draws it; it is never spawned as an entity.
 	SEMI_TRAILER_RENDER_TYPE = EntityTypes:getNEntityTypes();
 	local TR = turf.WheelEntityType.genNew(SEMI_TRAILER_RENDER_TYPE);
-	TR:setMeshId(SEMI_TRAILER_MESH_ID);
+	TR:setMeshId(SEMI_PAINT_MESH_ID);
 	TR:setTextureId(SEMI_PAL_TEX_ID);
 	EntityTypes:pushEntityType(TR);
 	SEMI_TRAILER_RENDER_TYPE = TR:getId();
@@ -127,7 +152,7 @@ function define_semi_truck (EntityTypes)
 	ET:setBaseArmourRating(0.6);
 
 	local VP = ET:getVehicleParameters();
-	VP.maxEngineForce      = 1600;   -- heavy semi: slow build-up
+	VP.maxEngineForce      = 2700;   -- grunt to haul the 2200 trailer (3000 was a touch much)
 	VP.maxBreakingForce    = 350.0;
 	VP.breakingIncrement   = 35.0;
 	VP.steeringIncrement   = 0.03;
@@ -143,7 +168,7 @@ function define_semi_truck (EntityTypes)
 	VP.rollInfluence       = 0.1;
 	VP.damageForceScaling  = 0.2;
 	VP.centreOfMass        = turf.btVector3(0, -0.3, 0);
-	VP.dragCoefficent      = 6;      -- caps top speed lower
+	VP.dragCoefficent      = 9;      -- raised with the force so top speed stays the same -- more pull, not more speed
 	VP.wheelType           = SEMI_WHEEL_TYPE;  -- invisible: the model draws its own wheels
 	VP.nWheels             = 4;     -- front steer pair + rear drive pair
 	VP.axleXPos            = 1.0;
@@ -183,6 +208,24 @@ function define_semi_truck (EntityTypes)
 		if     (lt) then P.walkFB =  1;   -- right trigger (reports as left-click/aim path): drive forward
 		elseif (rt) then P.walkFB = -1;   -- left trigger:  brake / reverse
 		else             P.walkFB =  0;   -- neither:       coast (stick can't drive it)
+		end
+		if (not SEMI_COUPLED) then
+			local trailerE = semi_find_trailer(E);
+			if (trailerE ~= nil) then
+				local EC2 = E:getEntityContainer();
+				local cb2 = E:getBody();
+				local fw2 = turf.cloneBtTransform(cb2:getWorldTransform()):multv(
+					turf.btVector3(0, SEMI_HITCH_LOCAL_Y + SEMI_CAB_COM_Y, SEMI_HITCH_LOCAL_Z));
+				-- The parked trailer IS the heavy collider: hinge IT to the cab (no despawn, no spawn).
+				-- It's invisible (empty mesh) and its render hook stops once coupled; the cab paints it.
+				SEMI_COLLIDER_E = trailerE;
+				local tb = trailerE:getBody();
+				if (tb ~= nil) then
+					pcall(function () tb:setIgnoreCollisionCheck(cb2, true); end);
+					pcall(semi_make_hinge, cb2, tb, fw2, EC2);
+				end
+				SEMI_COUPLED = true;
+			end
 		end
 		return false;
 	end
@@ -243,48 +286,82 @@ function define_semi_truck (EntityTypes)
 					d, semi_light_at(W, turf.cloneBtTransform(d):multv(turf.btVector3(0, 0, 0))), 0));
 			end
 		end
+	end
 
-		-- Trailer: hinged at the fifth wheel and trailing behind. Its rear bogie
-		-- lags; the body points from that bogie toward the kingpin, so it bends
-		-- through turns. World transform (it has its own yaw, independent of cab).
-		local kingW = turf.cloneBtTransform(base):multv(
-			turf.btVector3(0, SEMI_HITCH_LOCAL_Y, SEMI_HITCH_LOCAL_Z));
-		local kx, ky, kz = kingW:x(), kingW:y(), kingW:z();
-		if (st.trx == nil) then                            -- first frame: straight back
-			st.trx = kx - hx * SEMI_HITCH_LEN;
-			st.trz = kz - hz * SEMI_HITCH_LEN;
-		end
-		local tdx, tdz = kx - st.trx, kz - st.trz;         -- bogie -> kingpin = trailer forward
-		local tlen = math.sqrt(tdx * tdx + tdz * tdz);
-		local dirx, dirz;
-		if (tlen < 0.0001) then dirx, dirz = hx, hz; else dirx, dirz = tdx / tlen, tdz / tlen; end
-		st.trx = kx - dirx * SEMI_HITCH_LEN;
-		st.trz = kz - dirz * SEMI_HITCH_LEN;
-		local tcentre = turf.btVector3(kx - dirx * SEMI_KINGPIN_TO_CENTRE,
-		                               ky - SEMI_KINGPIN_LOCAL_Y + SEMI_TRAILER_TRIM_Y,
-		                               kz - dirz * SEMI_KINGPIN_TO_CENTRE);
-		local tdraw = turf.btTransform(turf.btQuaternion(turf.btVector3(0, 1, 0),
-		                               semi_atan2(dirx, dirz)), tcentre);
-		local tet = ETC:get(SEMI_TRAILER_RENDER_TYPE);
-		if (tet) then
-			tet:pushRenderInstance(turf.EntityRenderingInstance(
-				tdraw, semi_light_at(W, tcentre), 0));
-		end
+	-- The standalone trailer: its OWN wheeled VehicleEntity, defined LAST and
+	-- pcall-guarded so a failure here can never cost the cab. Mesh 361 (body, drawn
+	-- by the engine) + hull 363 collision; raycast wheels at a front support axle
+	-- and the rear bogie so it stands level on its own and rolls. NEVER spawned with
+	-- the cab -- only via /give SemiTrailer.
+	do   -- no pcall so a define error surfaces in lua_errors (the cab is already registered above)
+		local tid = EntityTypes:getNEntityTypes();
+		local TV  = turf.BasicVehicleEntityType.genNew(tid);
+		TV:setMeshId(SEMI_EMPTY_WHEEL_MESH);    -- invisible: the render hook paints the trailer (body 371 + wheels)
+		TV:setHitboxId(SEMI_TRAILER_MESH_ID);   -- 361 -> hull 363 collision
+		TV:setTextureId(SEMI_PAL_TEX_ID);
+		TV:setMass(2200);                       -- HEAVY: this body IS the towing collider once coupled
+		TV:setMaxHp(450);
+		local TVP = TV:getVehicleParameters();
+		TVP.maxEngineForce      = 0;       -- towed: no power of its own
+		TVP.maxBreakingForce    = 60.0;
+		TVP.breakingIncrement   = 10.0;
+		TVP.steeringClamp       = 0;       -- no steering
+		TVP.wheelRadius         = 0.5;
+		TVP.wheelWidth          = 0.35;
+		TVP.wheelFriction       = 1200;
+		TVP.suspensionStiffness = 150.0;  -- hold the 2200 rear up (60 sagged once the hull cleared the ground)
+		TVP.suspensionDamping   = 4.0;
+		TVP.suspensionCompression = 4.4;
+		TVP.suspensionRestLength  = 0.7;  -- raise the chassis so the back sits level, not sunk
+		TVP.maxSuspensionForce  = 350000;
+		TVP.rollInfluence       = 0.1;
+		TVP.dragCoefficent      = 4;
+		TVP.centreOfMass        = turf.btVector3(0, 0, 0);  -- pin physics origin to mesh origin so wheels line up with the body
+		TVP.wheelType           = SEMI_WHEEL_TYPE;        -- invisible raycast wheels
+		TVP.nWheels             = 4;                      -- front support axle + rear bogie axle
+		TVP.axleXPos            = 0.49;
+		TVP.axleZPos            = 3.4;                    -- scalar (symmetric); the array form {} was the likely failure
+		TVP.spawnRate           = 0.0;
+		TVP.spawnType           = turf.VehicleParameters.SPAWN_TYPE_NORMAL;
+		TV.hasCustomPushRenderInstance = true;
+		EntityTypes:pushEntityType(TV);
+		SEMI_TRAILER_VEH_ID = TV:getId();
+		SEMI_TRAILER_VEH_TYPE = TV;
 
-		-- Trailer bogie wheels: separate pieces so they spin with travel (same
-		-- spin as the cab's), placed in the trailer's frame and yawed with it.
-		for i = 1, #SEMI_TRAILER_WHEELS do
-			local tw = SEMI_TRAILER_WHEELS[i];
-			local wd = turf.cloneBtTransform(tdraw):mult(
-				turf.btTransform(turf.btQuaternion(turf.btVector3(0, 1, 0), 0),
-				                 turf.btVector3(tw.x, tw.y, tw.z)));
-			wd = wd:mult(spinRot);
-			local twet = ETC:get(SEMI_WHEELS[tw.wi].typeId);
-			if (twet) then
-				twet:pushRenderInstance(turf.EntityRenderingInstance(
-					wd, semi_light_at(W, turf.cloneBtTransform(wd):multv(turf.btVector3(0, 0, 0))), 0));
-			end
-		end
+		-- Invisible HEAVY collider: a real physics trailer with no visible mesh. Spawned on couple
+		-- and hinged to the cab, so it carries genuine mass + momentum (plows through trees, can't
+		-- be shoved). The smooth painted trailer is drawn on top of it for the visuals.
+		local CTV = turf.BasicVehicleEntityType.genNew(EntityTypes:getNEntityTypes());
+		CTV:setMeshId(SEMI_EMPTY_WHEEL_MESH);     -- invisible
+		CTV:setHitboxId(SEMI_TRAILER_MESH_ID);    -- 361 -> hull 363 collision
+		CTV:setTextureId(SEMI_PAL_TEX_ID);
+		CTV:setMass(2200);                        -- HEAVY (the old towed body was 800)
+		CTV:setMaxHp(99999);
+		local CVP = CTV:getVehicleParameters();
+		CVP.maxEngineForce      = 0;
+		CVP.maxBreakingForce    = 60.0;
+		CVP.steeringClamp       = 0;
+		CVP.wheelRadius         = 0.5;
+		CVP.wheelWidth          = 0.35;
+		CVP.wheelFriction       = 1500;
+		CVP.suspensionStiffness = 60.0;
+		CVP.suspensionDamping   = 4.0;
+		CVP.suspensionCompression = 4.4;
+		CVP.suspensionRestLength  = 0.5;
+		CVP.maxSuspensionForce  = 200000;
+		CVP.rollInfluence       = 0.1;
+		CVP.dragCoefficent      = 2;
+		CVP.centreOfMass        = turf.btVector3(0, 0, 0);
+		CVP.wheelType           = SEMI_WHEEL_TYPE;
+		CVP.nWheels             = 4;
+		CVP.axleXPos            = 0.49;
+		CVP.axleZPos            = 3.4;
+		CVP.spawnRate           = 0.0;
+		CVP.spawnType           = turf.VehicleParameters.SPAWN_TYPE_NORMAL;
+		EntityTypes:pushEntityType(CTV);
+		SEMI_COLLIDER_TYPE_ID = CTV:getId();
+		ENTITY_TYPES[SEMI_TRAILER_VEH_ID] = {};
+		ENTITY_TYPES[SEMI_TRAILER_VEH_ID].pushRenderInstance = function (E, W) semi_render_parked_trailer(E, W); end
 	end
 end
 
@@ -303,12 +380,66 @@ function define_semi_truck_item (BlockTypes, ItemTypes)
 	return SEMI_ITEM_SEEK;
 end
 
+-- Draw the standalone trailer's four bogie wheels (spinning with travel). Renders
+-- only THIS entity's own wheels -- never iterates other entities, so it can't race
+-- a despawn the way the old coupling code did.
+function semi_render_trailer_wheels (E, W)
+	local body = E:getBody();
+	if (body == nil) then return; end
+	-- Position off the BODY transform directly (NOT the hitbox/hull transform) -- the
+	-- hull transform shifts when the collision shape changes, which dragged the wheels
+	-- away from the axles. The body frame is the mesh frame (CoM is unset/0).
+	local base = turf.cloneBtTransform(body:getWorldTransform());
+	local id = E:getId();
+	local st = SEMI_TWHEEL_STATE[id];
+	local o  = base:getOrigin();
+	local px, pz = o:x(), o:z();
+	local hx, hz = semi_level_forward(body:getWorldTransform());
+	if (st == nil) then st = { spin = 0, px = px, pz = pz }; SEMI_TWHEEL_STATE[id] = st; end
+	local fwddist = (px - st.px) * hx + (pz - st.pz) * hz;
+	st.spin = st.spin + fwddist / SEMI_WHEEL_RADIUS;
+	if (st.spin >  6.2831853) then st.spin = st.spin - 6.2831853;
+	elseif (st.spin < -6.2831853) then st.spin = st.spin + 6.2831853; end
+	st.px, st.pz = px, pz;
+	local spinRot = turf.btTransform(turf.btQuaternion(turf.btVector3(1, 0, 0), st.spin), turf.btVector3(0, 0, 0));
+	local ETC = E:getEntityContainer():getEntityTypeContainer();
+	for i = 1, #SEMI_TRAILER_WHEELS do
+		local tw = SEMI_TRAILER_WHEELS[i];
+		local wd = turf.cloneBtTransform(base):mult(
+			turf.btTransform(turf.btQuaternion(turf.btVector3(0, 1, 0), 0),
+			                 turf.btVector3(tw.x, tw.y, tw.z)));
+		wd = wd:mult(spinRot);
+		local twet = ETC:get(SEMI_WHEELS[tw.wi].typeId);
+		if (twet) then
+			twet:pushRenderInstance(turf.EntityRenderingInstance(
+				wd, semi_light_at(W, turf.cloneBtTransform(wd):multv(turf.btVector3(0, 0, 0))), 0));
+		end
+	end
+end
+
+-- ---- /give item: the trailer, on its own -----------------------------------
+function define_semi_trailer_item (BlockTypes, ItemTypes)
+	if (SEMI_TRAILER_VEH_ID < 0) then return; end
+	local ITEM = turf.EntitySpawningItem.genNew("SemiTrailer", SEMI_TRAILER_VEH_ID);
+	local dx, dy, dz = 3, 4, 11;
+	ITEM.dimensions = turf.iVec3(dx, dy, dz);
+	ITEM.offset     = turf.btVector3(dx * 0.5, dy * 0.5 - 0.5, dz * 0.5);
+	ITEM.basecost   = 50000;
+	ITEM.isSecret   = false;
+	ITEM:setDesc("A semi-trailer. Spawn it on its own; later you back a Semi Truck under its nose to hook up.");
+	ItemTypes:pushItemType(ITEM, SEMI_TRAILER_ITEM_SEEK, turf.Item.NULL_MORPH_ROOT);
+	local IC = ItemTypes:genNewItemCategory("Semi Trailer");
+	IC:pushItem(SEMI_TRAILER_ITEM_SEEK);
+	return SEMI_TRAILER_ITEM_SEEK;
+end
+
 -- ---- registration ----------------------------------------------------------
 if (ENTITY_TYPES == nil) then ENTITY_TYPES = {}; end
 if (defineEntityTypesUserCallback == nil) then defineEntityTypesUserCallback = {}; end
 defineEntityTypesUserCallback[#defineEntityTypesUserCallback + 1] = { "SemiTruckMod|semi cab + trailer entities", define_semi_truck }
 if (defineOtherItemsUserCallback == nil) then defineOtherItemsUserCallback = {}; end
 defineOtherItemsUserCallback[#defineOtherItemsUserCallback + 1] = { "SemiTruckMod|semi spawn item", define_semi_truck_item }
+defineOtherItemsUserCallback[#defineOtherItemsUserCallback + 1] = { "SemiTruckMod|standalone trailer spawn item", define_semi_trailer_item }
 
 -- Because the drive triggers are the same ones bound to fire/aim (and we remap
 -- NOTHING), pulling a trigger to drive would otherwise also fire the gun. The
@@ -328,6 +459,104 @@ local function semi_install_fire_guard ()
 	SEMI_FIRE_GUARD_DONE = true;
 end
 
+-- ===================== TRAILER COUPLING (despawn-and-paint) =====================
+-- The physics-constrained trailer was floppy and floated. Instead: a PARKED trailer
+-- entity you drive up to; when the cab fifth wheel comes within SEMI_COUPLE_DIST of its
+-- kingpin the SERVER despawns the parked entity and the CLIENT paints the trailer onto
+-- the cab (smooth, bends -- see the cab render hook). semi_find_trailer is the shared
+-- proximity test (no side effects) used by both sides.
+function semi_find_trailer (cab)
+	if (SEMI_TRAILER_VEH_ID < 0) then return nil; end
+	local cabBody = cab:getBody();
+	if (cabBody == nil) then return nil; end
+	local EC = cab:getEntityContainer();
+	if (EC == nil) then return nil; end
+	local fwW = turf.cloneBtTransform(cabBody:getWorldTransform()):multv(
+		turf.btVector3(0, SEMI_HITCH_LOCAL_Y + SEMI_CAB_COM_Y, SEMI_HITCH_LOCAL_Z));
+	local n = EC:getNEntities();
+	for i = 0, n - 1 do
+		local e = EC:get(i);
+		if (e ~= nil) then
+			local et = e:getEntityType();
+			if (et ~= nil and et:getId() == SEMI_TRAILER_VEH_ID) then
+				local trBody = e:getBody();
+				if (trBody ~= nil) then
+					local kpW = turf.cloneBtTransform(trBody:getWorldTransform()):multv(
+						turf.btVector3(0, SEMI_KINGPIN_LOCAL_Y, SEMI_KINGPIN_TO_CENTRE));
+					local dx = fwW:x() - kpW:x();
+					local dz = fwW:z() - kpW:z();
+					if (dx * dx + dz * dz < SEMI_COUPLE_DIST * SEMI_COUPLE_DIST) then
+						return e;
+					end
+				end
+			end
+		end
+	end
+	return nil;
+end
+
+-- Paint the trailer (v1.0.0 body mesh 371 + spinning bogie wheels) directly on its OWN
+-- physics body, every frame -- parked AND towed. The visual rides the real collider, so
+-- what you see is exactly what has the hitbox: back into a tree and the trailer stops.
+-- (The cab no longer paints a separate trailer, so there is no double and no visual/collider
+-- split.) SEMI_PARKED_TRIM_Y drops the body so mesh 371 sits on its wheels.
+function semi_render_parked_trailer (E, W)
+	local body = E:getBody();
+	if (body == nil) then return; end
+	local bt = body:getWorldTransform();
+	local drawT = turf.cloneBtTransform(bt):mult(
+		turf.btTransform(turf.btQuaternion(turf.btVector3(0, 1, 0), 0), turf.btVector3(0, SEMI_PARKED_TRIM_Y, 0)));
+	local ETC = E:getEntityContainer():getEntityTypeContainer();
+	local tet = ETC:get(SEMI_TRAILER_RENDER_TYPE);
+	if (tet) then tet:pushRenderInstance(turf.EntityRenderingInstance(drawT, semi_light_at(W, drawT:getOrigin()), 0)); end
+	-- spin the bogie wheels from how far the body has travelled this frame
+	local id = E:getId();
+	local st = SEMI_TWHEEL_STATE[id];
+	local o  = bt:getOrigin();
+	local px, pz = o:x(), o:z();
+	local hx, hz = semi_level_forward(bt);
+	if (st == nil) then st = { spin = 0, px = px, pz = pz }; SEMI_TWHEEL_STATE[id] = st; end
+	local fwddist = (px - st.px) * hx + (pz - st.pz) * hz;
+	st.spin = st.spin + fwddist / SEMI_WHEEL_RADIUS;
+	if (st.spin >  6.2831853) then st.spin = st.spin - 6.2831853;
+	elseif (st.spin < -6.2831853) then st.spin = st.spin + 6.2831853; end
+	st.px, st.pz = px, pz;
+	local spinRot = turf.btTransform(turf.btQuaternion(turf.btVector3(1, 0, 0), st.spin), turf.btVector3(0, 0, 0));
+	for i = 1, #SEMI_TRAILER_WHEELS do
+		local tw = SEMI_TRAILER_WHEELS[i];
+		local wd = turf.cloneBtTransform(drawT):mult(
+			turf.btTransform(turf.btQuaternion(turf.btVector3(0, 1, 0), 0), turf.btVector3(tw.x, tw.y, tw.z)));
+		wd = wd:mult(spinRot);
+		local twet = ETC:get(SEMI_WHEELS[tw.wi].typeId);
+		if (twet) then twet:pushRenderInstance(turf.EntityRenderingInstance(wd, semi_light_at(W, wd:getOrigin()), 0)); end
+	end
+end
+
+function semi_make_hinge (cabBody, trBody, fwW, EC)
+	cabBody:activate(true);
+	trBody:activate(true);
+	trBody:setActivationState(4);
+	-- snap the collider so its kingpin sits at the fifth wheel, aligned behind the cab
+	local Rcab    = turf.cloneBtTransform(cabBody:getWorldTransform()):getRotation();
+	local rotOnly = turf.btTransform(Rcab, turf.btVector3(0, 0, 0));
+	local kpOff   = rotOnly:multv(turf.btVector3(0, SEMI_KINGPIN_LOCAL_Y, SEMI_KINGPIN_TO_CENTRE));
+	trBody:setCenterOfMassTransform(turf.btTransform(Rcab,
+		turf.btVector3(fwW:x() - kpOff:x(), fwW:y() - kpOff:y(), fwW:z() - kpOff:z())));
+	trBody:setLinearVelocity(turf.btVector3(0, 0, 0));
+	trBody:setAngularVelocity(turf.btVector3(0, 0, 0));
+	-- BALL JOINT (point2point) at the fifth wheel, NOT a vertical hinge. A vertical hinge
+	-- locks pitch -> the (invisible) collider hangs LEVEL and UP IN THE AIR, so its hull
+	-- never reaches ground level and nothing you back into collides ("no hitbox"). The
+	-- ball joint leaves pitch free, so the rear settles DOWN onto its own raycast wheels at
+	-- ground level where the hull can actually hit trees/walls, and yaw is free so it bends.
+	-- pivots = the fifth-wheel world point expressed in each body's local frame.
+	local pivotA = turf.cloneBtTransform(cabBody:getWorldTransform()):inverse():multv(fwW);
+	local pivotB = turf.cloneBtTransform(trBody:getWorldTransform()):inverse():multv(fwW);
+	local c      = turf.btPoint2PointConstraint.newAB(cabBody, trBody, pivotA, pivotB);
+	local PH = EC:getWorld():getPhysicsHandler();
+	if (not pcall(function () PH:addConstraint(c, true); end)) then PH:addConstraint(c); end
+	SEMI_HINGE = c;
+end
 if (customFunc == nil) then customFunc = {}; end
 SEMI_PREV_POLL_EXTRA = customFunc.pollServerTick_extra;
 customFunc.pollServerTick_extra = function (NH)

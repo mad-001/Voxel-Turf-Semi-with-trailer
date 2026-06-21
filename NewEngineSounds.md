@@ -82,46 +82,101 @@ or the tag name is mismatched — check `logs/mod_load_client.log`.
 
 ---
 
-## 3. Known limitations of this approach (decide before polishing)
+## 3. Why the one-shot retrigger (Section 2) gaps — don't ship it as the engine
 
-These are inherent to driving engine audio from Lua and should be acknowledged
-in the design, not "fixed" by guesswork:
+A one-shot plays its **full length** and is never cut off. The problem is
+*pacing*: we'd retrigger by **distance travelled**, but the sample is a fixed
+length in **time**. Those only line up at one speed:
 
-1. **One-shot, not a true loop.** VoxelTurf exposes no per-entity *looping*
-   sound handle to Lua (looping-start exists only on the `Item` class; the C++
-   engine owns real vehicle engine audio). So "continuous engine" = re-firing
-   the ~4s sample by distance travelled. Timing only lines up at one speed:
-   too fast → overlapping copies (chorus-y); too slow → audible gaps.
+- **Slow** → distance accrues slowly → next shot fires *after* the last ended →
+  **silence gap**.
+- **Fast** → next shot fires *before* the last ends → copies overlap → a
+  **volume swell / flange**, not a clean engine.
 
-2. **Layers over the stock engine drone.** The cab is a
-   `BasicVehicleEntityType`, so the engine already plays the global
-   `ENGINE_*` car loop for it. Our diesel ADDS on top → possible double engine
-   sound. Making the diesel the *only* engine sound would require overriding the
-   global `ENGINE_*` tags, which changes every vanilla car — **explicitly off
-   the table**.
+To pace by *time* (fire every `sampleLen − overlap` s so it always overlaps
+slightly and never gaps) we'd need a clock — and the client render hook gets no
+`dt`/frame time, and counting frames is unreliable (FPS varies). **So the
+one-shot cannot be made reliably gapless.** Keep Section 2 only as the immediate
+error-killer / fallback, not the final engine.
 
-3. **No RPM reactivity.** Distance-paced, not throttle-paced. `setLooping...
-   PlaybackSpeed` only works on a looping id we don't have.
+Two facts that apply to *any* method here:
+- **Layers over the stock engine drone.** The cab is a `BasicVehicleEntityType`,
+  so the engine already plays the global `ENGINE_*` car loop for it. Our diesel
+  ADDS on top. There is **no per-vehicle mute** (`VehicleParameters` exposes only
+  `sirenSoundTag`). Diesel-only would mean overriding global `ENGINE_*` →
+  changes every vanilla car → **off the table**. Keep diesel volume modest
+  (0.5–0.7) so it complements.
+- A **server** loop (`NetworkHandler:playSoundAt(name, pos, looping, 0, 0)`,
+  the bank-vault alarm) pins the sound to a fixed point — wrong for a moving
+  truck.
 
 ---
 
-## 4. Options going forward (pick one)
+## 4. Recommended: a real CLIENT loop (gapless, RPM-reactive)
 
-- **A. Ship the fixed one-shot version** (Section 2) as a best-effort diesel
-  layer, toggle `SEMI_ENGINE_SFX_ENABLE` and tune `SEMI_ENGINE_RETRIG_M` by ear.
-  Accept the layering with the stock drone. *Lowest effort, testable now.*
+A true looping sound has **zero** gaps by definition: start once, move it with
+the cab, pitch it with speed, stop it when the cab is gone. The `SoundHandler`
+loop methods (`setLoopingSoundEffectLocation(id,pos)`,
+`setLoopingSoundEffectPlaybackSpeed(id,speed)`, `stopSoundEffectLooping(id)`)
+all take an **id**, so a start-that-returns-an-id must exist — it's just not in
+the documented table (the equivalent is shown only on the `Item` class as
+`playSoundEffectLoopingAtLocation(tag, pos)`).
 
-- **B. Horn only.** Set `SEMI_ENGINE_SFX_ENABLE = false`, keep the air-horn
-  (`sirenSoundTag = "SEMI_HORN"`, which works cleanly), and leave the engine as
-  the stock car drone. *Zero risk, no double-up, no log spam.* **Recommended
-  unless the layered diesel sounds good in testing.**
+**Orphan cleanup without a despawn hook:** the render hook simply *stops being
+called* for a cab once it despawns / leaves view. So stamp `st.lastSeen` each
+frame and run a small sweep that stops any loop whose `lastSeen` is stale. No
+client despawn callback needed.
 
-- **C. Investigate a real looping handle.** Confirm in-game whether any
-  `SoundHandler` call returns a usable looping id (the API table lists
-  `setLoopingSoundEffectLocation`/`stopSoundEffectLooping`/`...PlaybackSpeed`
-  that all take an id — something must return one). If a start-looping method
-  exists, switch to a single positioned loop with `...PlaybackSpeed` scaled by
-  speed → a proper engine. *Best result, needs verification, no guessing.*
+Target design (apply only after the probe in §4.1 confirms the start method):
+
+```lua
+-- per cab, first render: start ONE loop and keep its id on st
+if (st.engLoop == nil) then
+    st.engLoop = <START LOOP at base:getOrigin()>   -- id from the probe-confirmed call
+end
+-- every frame while it exists:
+SH:setLoopingSoundEffectLocation(st.engLoop, base:getOrigin());
+local rev = 0.85 + math.min(0.6, math.abs(fwddist) * SEMI_ENGINE_REV_K);  -- speed → pitch
+SH:setLoopingSoundEffectPlaybackSpeed(st.engLoop, rev);
+st.lastSeen = <frame counter>;
+-- periodic sweep: for each tracked st, if (now - st.lastSeen) > N then
+--     SH:stopSoundEffectLooping(st.engLoop); st.engLoop = nil
+```
+
+### 4.1 In-game probe FIRST (no guessing in shipped code)
+
+Before wiring the loop, confirm the start method and its return by wrapping the
+likely call in `pcall` and reading the client log. Paste this **temporarily** at
+the top of the engine block in `pushRenderInstance` (fires once via a guard):
+
+```lua
+if (not IS_SERVER and SEMI_ENGINE_PROBE ~= true) then
+    SEMI_ENGINE_PROBE = true;
+    local SH  = turf.SoundHandler.getInstance();
+    local sid = turf.SoundHandler.getInstanceC():getSfxId("SEMI_ENGINE_LOOP");
+    print("LOOP PROBE: sfxId=", tostring(sid));
+    -- candidate start methods — whichever does NOT error and returns an id wins:
+    local ok1, id1 = pcall(function() return SH:playSoundEffectLoopingAtLocation(sid, base:getOrigin()); end);
+    print("LOOP PROBE: playSoundEffectLoopingAtLocation ok=", ok1, " id=", tostring(id1));
+    local ok2, id2 = pcall(function() return SH:playSoundEffectLooping(sid); end);
+    print("LOOP PROBE: playSoundEffectLooping ok=", ok2, " id=", tostring(id2));
+end
+```
+
+Read `logs` (client) for the `LOOP PROBE:` lines:
+- If a call shows `ok= true` and a numeric `id=` → that's our start method; build
+  §4 around it (and immediately `stopSoundEffectLooping(id)` the probe's own id
+  so it doesn't leak).
+- If both `ok= false` → report the error text; next candidates to try are
+  `playLoopingSoundEffectAtLocation` / a 2-return form. Still no guessing in the
+  shipped block — only the probe explores.
+
+### 4.2 Fallbacks if no client loop-start exists
+
+- **B. Horn only.** Set `SEMI_ENGINE_SFX_ENABLE = false`; keep the working
+  air-horn (`sirenSoundTag = "SEMI_HORN"`). Zero risk, no double-up, no spam.
+- **A. Keep the fixed one-shot** (Section 2) accepting the gaps/swell. Lowest
+  fidelity; only if a rough diesel layer is wanted.
 
 ---
 
@@ -129,12 +184,14 @@ in the design, not "fixed" by guesswork:
 
 1. Rebuild/redeploy `SemiTruckMod` to the game `mods/` folder.
 2. `/give SemiTruck`, drive it.
-3. Watch `logs/mod_load_client.log` — confirm `SEMI_ENGINE_LOOP` /
-   `SEMI_HORN` loaded with no errors.
-4. Watch the client log while driving — the `playSoundEffectAtLocation` error
-   must be **gone**.
-5. Judge by ear: does the diesel layer acceptably over the stock drone, or is it
-   doubled/choruser? Decide A vs B vs C.
+3. Watch `logs/mod_load_client.log` — confirm `SEMI_ENGINE_LOOP` / `SEMI_HORN`
+   loaded with no errors.
+4. **Probe run (§4.1):** read the `LOOP PROBE:` lines, pick the start method.
+5. Wire §4, drive: engine should be continuous (no gaps) and pitch up with
+   speed. Confirm the old `playSoundEffectAtLocation` error is gone.
+6. Park / despawn a cab and confirm its loop stops (staleness sweep works — no
+   stuck droning).
+7. Judge the diesel against the stock drone; tune volume (sfx.txt) / `REV_K`.
 
 ---
 
