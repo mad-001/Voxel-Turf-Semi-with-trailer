@@ -66,13 +66,15 @@ SEMI_HITCH_LOCAL_Z     = -2.0  -- fifth-wheel sits behind the cab, over the driv
 SEMI_KINGPIN_LOCAL_Y   = 1.20  -- kingpin pivot height up the gooseneck. HIGHER = trailer hangs LOWER
                                -- from the fifth wheel (held at this point). Raised from 0.77 to drop
                                -- the nose ~0.5 (was sitting half a wheel too high at the hitch).
-SEMI_KINGPIN_TO_CENTRE = 2.9   -- kingpin z (gooseneck-underside centre) in front of trailer origin
+SEMI_KINGPIN_TO_CENTRE = 2.5   -- kingpin z in front of trailer origin. LOWER = trailer sits FORWARD (closer
+                               -- to the cab). Was 2.9 (sat too far back vs the old painted version); 2.5 matches it.
 SEMI_HITCH_LEN         = 6.4   -- kingpin -> trailer rear bogie centre (the trailing arm; longer = bends less)
 -- PAINTED-trailer offsets (v1.0.0 body mesh 371) -- separate from the parked-entity detection above
 SEMI_PAINT_KINGPIN_Y   = 1.6   -- v1.0.0 coupling height for the painted body
 SEMI_PAINT_KINGPIN_Z   = 2.5   -- v1.0.0 kingpin in front of the painted body origin
 SEMI_PAINT_TRIM_Y      = 0.0   -- v1.0.0 vertical trim for the painted body
-SEMI_COUPLED           = false -- true once coupled (parked entity hidden + painted trailer on)
+SEMI_COUPLED_CABS      = {}    -- [cabId]=true once THAT cab is coupled (per-cab so multiple rigs work)
+SEMI_COUPLED_TRAILERS  = {}    -- [trailerId]=true once THAT trailer is hitched (so another cab won't grab it)
 SEMI_COLLIDER_E        = nil   -- the spawned invisible heavy collider entity
 SEMI_COLLIDER_TYPE_ID  = -1    -- (unused now) old separate-collider type id
 SEMI_PARKED_TRIM_Y     = -0.74 -- vertical nudge for the PARKED painted body so its wheels meet the ground
@@ -209,7 +211,8 @@ function define_semi_truck (EntityTypes)
 		elseif (rt) then P.walkFB = -1;   -- left trigger:  brake / reverse
 		else             P.walkFB =  0;   -- neither:       coast (stick can't drive it)
 		end
-		if (not SEMI_COUPLED) then
+		local cabId = E:getId();
+		if (not SEMI_COUPLED_CABS[cabId]) then
 			local trailerE = semi_find_trailer(E);
 			if (trailerE ~= nil) then
 				local EC2 = E:getEntityContainer();
@@ -221,10 +224,11 @@ function define_semi_truck (EntityTypes)
 				SEMI_COLLIDER_E = trailerE;
 				local tb = trailerE:getBody();
 				if (tb ~= nil) then
-					pcall(function () tb:setIgnoreCollisionCheck(cb2, true); end);
+					pcall(function () tb:setIgnoreCollisionCheck(cb2, true); end);  -- don't collide with its OWN cab (nose overhangs it); the trailer is still solid to the rest of the world
 					pcall(semi_make_hinge, cb2, tb, fw2, EC2);
 				end
-				SEMI_COUPLED = true;
+				SEMI_COUPLED_CABS[cabId] = true;
+				SEMI_COUPLED_TRAILERS[trailerE:getId()] = true;
 			end
 		end
 		return false;
@@ -260,12 +264,12 @@ function define_semi_truck (EntityTypes)
 		st.spin = st.spin + fwddist / SEMI_WHEEL_RADIUS;
 		if (st.spin >  6.2831853) then st.spin = st.spin - 6.2831853;
 		elseif (st.spin < -6.2831853) then st.spin = st.spin + 6.2831853; end
-		if (math.abs(fwddist) > 0.001) then                -- the slightest movement steers
+		if (math.abs(fwddist) > 0.02) then                 -- ignore crawl-speed noise (dividing by tiny fwddist amplifies jitter)
 			local dyaw   = semi_atan2(st.hx * hz - st.hz * hx, st.hx * hx + st.hz * hz);
 			local target = math.atan(SEMI_WHEELBASE * dyaw / fwddist);
 			if (target >  SEMI_STEER_CLAMP) then target =  SEMI_STEER_CLAMP;
 			elseif (target < -SEMI_STEER_CLAMP) then target = -SEMI_STEER_CLAMP; end
-			st.steer = st.steer + (target - st.steer) * 0.35;
+			st.steer = st.steer + (target - st.steer) * 0.18;  -- heavier smoothing = less front-wheel jitter
 		end
 		st.px, st.pz, st.hx, st.hz = px, pz, hx, hz;
 
@@ -301,6 +305,7 @@ function define_semi_truck (EntityTypes)
 		TV:setTextureId(SEMI_PAL_TEX_ID);
 		TV:setMass(2200);                       -- HEAVY: this body IS the towing collider once coupled
 		TV:setMaxHp(450);
+		TV:setAngularDamping(0.60);  -- damp the side-to-side wobble (rotational drag only; pull is unaffected)
 		local TVP = TV:getVehicleParameters();
 		TVP.maxEngineForce      = 0;       -- towed: no power of its own
 		TVP.maxBreakingForce    = 60.0;
@@ -314,12 +319,12 @@ function define_semi_truck (EntityTypes)
 		TVP.suspensionCompression = 4.4;
 		TVP.suspensionRestLength  = 0.7;  -- raise the chassis so the back sits level, not sunk
 		TVP.maxSuspensionForce  = 350000;
-		TVP.rollInfluence       = 0.1;
+		TVP.rollInfluence       = 0.0;   -- no roll transferred from wheels -> less lean
 		TVP.dragCoefficent      = 4;
 		TVP.centreOfMass        = turf.btVector3(0, 0, 0);  -- pin physics origin to mesh origin so wheels line up with the body
 		TVP.wheelType           = SEMI_WHEEL_TYPE;        -- invisible raycast wheels
 		TVP.nWheels             = 4;                      -- front support axle + rear bogie axle
-		TVP.axleXPos            = 0.49;
+		TVP.axleXPos            = 1.00;  -- VERY wide track (near the hull edge 1.15): max static roll resistance so the rigid trailer stays level. Invisible wheels, visuals unchanged
 		TVP.axleZPos            = 3.4;                    -- scalar (symmetric); the array form {} was the likely failure
 		TVP.spawnRate           = 0.0;
 		TVP.spawnType           = turf.VehicleParameters.SPAWN_TYPE_NORMAL;
@@ -478,7 +483,7 @@ function semi_find_trailer (cab)
 		local e = EC:get(i);
 		if (e ~= nil) then
 			local et = e:getEntityType();
-			if (et ~= nil and et:getId() == SEMI_TRAILER_VEH_ID) then
+			if (et ~= nil and et:getId() == SEMI_TRAILER_VEH_ID and not SEMI_COUPLED_TRAILERS[e:getId()]) then
 				local trBody = e:getBody();
 				if (trBody ~= nil) then
 					local kpW = turf.cloneBtTransform(trBody:getWorldTransform()):multv(
@@ -544,17 +549,15 @@ function semi_make_hinge (cabBody, trBody, fwW, EC)
 		turf.btVector3(fwW:x() - kpOff:x(), fwW:y() - kpOff:y(), fwW:z() - kpOff:z())));
 	trBody:setLinearVelocity(turf.btVector3(0, 0, 0));
 	trBody:setAngularVelocity(turf.btVector3(0, 0, 0));
-	-- BALL JOINT (point2point) at the fifth wheel, NOT a vertical hinge. A vertical hinge
-	-- locks pitch -> the (invisible) collider hangs LEVEL and UP IN THE AIR, so its hull
-	-- never reaches ground level and nothing you back into collides ("no hitbox"). The
-	-- ball joint leaves pitch free, so the rear settles DOWN onto its own raycast wheels at
-	-- ground level where the hull can actually hit trees/walls, and yaw is free so it bends.
-	-- pivots = the fifth-wheel world point expressed in each body's local frame.
+	-- BALL JOINT (point2point) at the fifth wheel: frees all rotation so the rear settles
+	-- onto its wheels (pitch) and the rig bends (yaw). Roll is also free (some lean), but the
+	-- universal-joint attempt to lock roll BROKE towing (couldn't pull, bounced) -- so we keep
+	-- the ball joint. pivots = the fifth-wheel world point in each body's local frame.
 	local pivotA = turf.cloneBtTransform(cabBody:getWorldTransform()):inverse():multv(fwW);
 	local pivotB = turf.cloneBtTransform(trBody:getWorldTransform()):inverse():multv(fwW);
 	local c      = turf.btPoint2PointConstraint.newAB(cabBody, trBody, pivotA, pivotB);
 	local PH = EC:getWorld():getPhysicsHandler();
-	if (not pcall(function () PH:addConstraint(c, true); end)) then PH:addConstraint(c); end
+	if (not pcall(function () PH:addConstraint(c, true); end)) then PH:addConstraint(c); end  -- true = cab<->trailer don't collide (attached pair)
 	SEMI_HINGE = c;
 end
 if (customFunc == nil) then customFunc = {}; end
