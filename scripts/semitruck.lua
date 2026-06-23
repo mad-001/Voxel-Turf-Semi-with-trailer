@@ -110,6 +110,35 @@ local function semi_level_forward (T)
 end
 
 -- ---- entity type definitions -----------------------------------------------
+-- Resolve the entity's real btRaycastVehicle (exposed in 1.9.9.d) so we can read the ACTUAL
+-- front-wheel steering instead of deriving it from chassis yaw (which jitters at low speed).
+-- Self-configuring + safe: tries candidate accessors once, caches the one that returns a vehicle
+-- with getNumWheels; if none exist, gives up permanently and we fall back to the derived steer.
+SEMI_VEH_ACC = nil;   -- string = working accessor name ; false = none exists (fall back forever)
+local SEMI_VEH_CANDS = {"getRaycastVehicle","getVehicle","initCVI","getCVI","getCar","getCarVehicle","getRaycast","getBtVehicle","getVehiclePhysics"};
+function semi_get_vehicle (E)
+	if (SEMI_VEH_ACC == false) then return nil; end
+	if (type(SEMI_VEH_ACC) == "string") then
+		local ok, v = pcall(function () return E[SEMI_VEH_ACC](E); end);
+		if (ok and v ~= nil) then return v; end
+		return nil;
+	end
+	local anyMethod = false;
+	for i = 1, #SEMI_VEH_CANDS do
+		local nm = SEMI_VEH_CANDS[i];
+		local f = nil; pcall(function () f = E[nm]; end);
+		if (f ~= nil) then
+			anyMethod = true;
+			local ok, v = pcall(function () return E[nm](E); end);
+			if (ok and v ~= nil and pcall(function () return v:getNumWheels(); end)) then
+				SEMI_VEH_ACC = nm; return v;
+			end
+		end
+	end
+	if (not anyMethod) then SEMI_VEH_ACC = false; end   -- no accessor on this entity; stop trying
+	return nil;                                         -- method exists but vehicle not ready yet -> retry next frame
+end
+
 function define_semi_truck (EntityTypes)
 	-- Trailer: a render-only component (a WheelEntityType, exactly like the
 	-- wheels). The cab's render hook draws it; it is never spawned as an entity.
@@ -272,6 +301,18 @@ function define_semi_truck (EntityTypes)
 			st.steer = st.steer + (target - st.steer) * 0.18;  -- heavier smoothing = less front-wheel jitter
 		end
 		st.px, st.pz, st.hx, st.hz = px, pz, hx, hz;
+		-- real front-wheel steering (1.9.9.d) overrides the derived value -> no jitter; nil -> keep derived
+		local veh = semi_get_vehicle(E);
+		if (veh ~= nil) then
+			local ok, rs = pcall(function ()
+				for i = 0, veh:getNumWheels() - 1 do
+					local wi = veh:getWheelInfoC(i);
+					if (wi.m_bIsFrontWheel) then return wi.m_steering; end
+				end
+				return nil;
+			end);
+			if (ok and rs ~= nil) then st.steer = rs; end
+		end
 
 		local spinRot  = turf.btTransform(turf.btQuaternion(turf.btVector3(1, 0, 0), st.spin),  turf.btVector3(0, 0, 0));
 		local steerRot = turf.btTransform(turf.btQuaternion(turf.btVector3(0, 1, 0), -st.steer * SEMI_STEER_VISUAL), turf.btVector3(0, 0, 0));
